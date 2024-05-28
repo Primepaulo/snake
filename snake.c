@@ -16,10 +16,12 @@ typedef struct
   int score;
 } snake;
 
-pos gera_fruta(int rows, int cols){
+pos gera_fruta(int lines, int cols){
   pos fruta;
-  fruta.x = rand() % rows / 3;
-  fruta.y = rand() % cols;
+  fruta.y = rand() % lines;
+  fruta.x = rand() % cols;
+  //fruta.x = rand() % rows / 3;
+  //fruta.y = rand() % cols;
   return fruta;
 }
 
@@ -28,12 +30,11 @@ int main(){
 
     // Iniciar a tela, receber input (ncurses)
     WINDOW* win = initscr();
+  // initscr inicializa LINES e COLS automaticamente.
+  // pensar em usar wborder ao invés de box
     keypad(win, true);
     nodelay(win, true);
     curs_set(0);
-    int row, col;
-    getmaxyx(win, col, row);
-    printf("%d and %d", row, col); 
     //Criar a cobra e a primeira fruta
     snake snake;
     snake.head.x = 10; snake.head.y = 10;
@@ -41,7 +42,7 @@ int main(){
     snake.score = 0;
     snake.body = (pos*)malloc(300 * sizeof(pos));
 
-    pos fruta = gera_fruta(row, col);
+    pos fruta = gera_fruta(LINES, COLS);
   
     while (true){
         int pressed = wgetch(win);
@@ -71,6 +72,8 @@ int main(){
                 snake.dir.y = 0;
                 head = '<';
                 break;
+            case KEY_END:
+                goto appkiller;
         }
 
         for(int i = snake.score; i > 0; i--){
@@ -84,8 +87,13 @@ int main(){
 
         if (snake.head.x == fruta.x && snake.head.y == fruta.y){
           snake.score++;
-          fruta = gera_fruta(row, col);
+          fruta = gera_fruta(LINES - 1, COLS - 1);
         }
+        
+        if(snake.head.x == COLS - 1 || snake.head.y == LINES - 1 || snake.head.x == 0 || snake.head.y == 0)
+    {
+      break;
+    }
 
         // Desenhar no terminal (ncurses)
         erase();
@@ -93,12 +101,15 @@ int main(){
         for (int i = 0; i < snake.score; i++){
           mvaddch(snake.body[i].y, snake.body[i].x * 2, '*');
         }
+        mvaddch(LINES, COLS, 'v');
         mvaddch(snake.head.y, snake.head.x * 2, head);
         mvaddch(fruta.y,fruta.x * 2, 'O');
         usleep(100000);
 
     
     }
-    endwin();
+    appkiller:
+      endwin();
+      printf("\n X: %d | %d \n Y: %d | %d", snake.head.x, COLS, snake.head.y, LINES);
     return 0;
 }
