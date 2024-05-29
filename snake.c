@@ -6,13 +6,13 @@
 void game_start(WINDOW** win);
 
 int menu(WINDOW** win){
-  erase();
-  box(*win, 0, 0);
   refresh();
   const char* opcoes[] = {"Jogar","Pontuações","Sair"};
   int select = 0;
   int escolha;
   while(true){
+    erase();
+    box(*win, 0, 0);
     for (int i = 0; i < 3; i++){
       if (i == select){wattron(*win, A_REVERSE);}
       mvprintw((LINES  / 2) + i, (COLS - 9) / 2 , opcoes[i]);
@@ -33,21 +33,20 @@ int menu(WINDOW** win){
         break;
     }
     if (escolha == 10 || escolha == KEY_ENTER){
+      //mvprintw(5, 5, "%d", select);
       switch (select)
       {
         case 0:
-        //Bugado
           game_start(win);
           break;
         case 1:
           break;
         case 2:
           endwin();
-          goto end;
+          return 0;
       }
     }
   }
-  end:
   return 0;
 }
 
@@ -101,12 +100,14 @@ void dpausar(snake* snake, WINDOW** win){
 
 void game_over(WINDOW** win){
   //solicitar nome pra salvar score no arquivo
-  menu(win);
+  erase();
+  refresh();
 }
 
 void game_start(WINDOW** win){
     int timer = 110000;
     int size = 1;
+    int flag = 0;
     snake snake;
     snake.head.x = 10; snake.head.y = 10;
     snake.dir.x = 1; snake.dir.y = 0;
@@ -160,10 +161,12 @@ void game_start(WINDOW** win){
         {
           if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y)
           { 
-            break;
+            free(snake.body);
+            flag = 1;
+            goto end;
           }
         }
-
+        
         if (snake.head.x == fruta.x && snake.head.y == fruta.y){
           snake.score++;
           if (snake.score % 3 == 0){
@@ -180,9 +183,13 @@ void game_start(WINDOW** win){
 
         if(snake.head.x == COLS - 1 || snake.head.y == LINES - 1 || snake.head.x == 0 || snake.head.y == 0)
         {
-          game_over(win);
+          free(snake.body);
+          flag = 1;
+          goto end;
         }
-    }
+      }
+      end:
+        game_over(win);
 }
 
 int main(){
@@ -193,7 +200,6 @@ int main(){
     curs_set(0);
 
     menu(&win);
-    //game_start(&win);
 
     endwin();
     return 0;
