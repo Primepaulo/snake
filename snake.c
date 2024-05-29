@@ -3,9 +3,52 @@
 #include <unistd.h>
 #include <stdio.h>
 
+void game_start(WINDOW** win);
 
-void menu(){
-  //menu principal!
+int menu(WINDOW** win){
+  erase();
+  box(*win, 0, 0);
+  refresh();
+  const char* opcoes[] = {"Jogar","Pontuações","Sair"};
+  int select = 0;
+  int escolha;
+  while(true){
+    for (int i = 0; i < 3; i++){
+      if (i == select){wattron(*win, A_REVERSE);}
+      mvprintw((LINES  / 2) + i, (COLS - 9) / 2 , opcoes[i]);
+      wattroff(*win, A_REVERSE);
+    }
+    escolha = wgetch(*win);
+    switch (escolha)
+    {
+      case KEY_UP:
+        if (select == 0){continue;}
+        select--;
+        break;
+      case KEY_DOWN:
+        if (select == 2){continue;}
+        select++;
+        break;
+      default:
+        break;
+    }
+    if (escolha == 10 || escolha == KEY_ENTER){
+      switch (select)
+      {
+        case 0:
+        //Bugado
+          game_start(win);
+          break;
+        case 1:
+          break;
+        case 2:
+          endwin();
+          goto end;
+      }
+    }
+  }
+  end:
+  return 0;
 }
 
 typedef struct{
@@ -56,20 +99,12 @@ void dpausar(snake* snake, WINDOW** win){
     usleep(9999999);
 }
 
-void game_over(){
+void game_over(WINDOW** win){
   //solicitar nome pra salvar score no arquivo
-  menu();
+  menu(win);
 }
 
-int main(){
-
-    WINDOW* win = initscr();
-    keypad(win, true);
-    nodelay(win, true);
-    curs_set(0);
-
-    menu();
-
+void game_start(WINDOW** win){
     int timer = 110000;
     int size = 1;
     snake snake;
@@ -77,11 +112,10 @@ int main(){
     snake.dir.x = 1; snake.dir.y = 0;
     snake.score = 5;
     snake.body = (pos*)malloc(size * 300 * sizeof(pos));
-
     pos fruta = gera_fruta(LINES - 1, COLS - 1);
     char head = '>';
     while (true){
-        int pressed = wgetch(win);
+        int pressed = wgetch(*win);
         switch (pressed){
             case KEY_UP:
                 if (snake.dir.y == 1){continue;}
@@ -108,13 +142,13 @@ int main(){
                 head = '<';
                 break;
             case KEY_HOME:
-              dpausar(&snake, &win);
-              desenhar(&win, &snake, head, &fruta, timer);
+              dpausar(&snake, win);
+              desenhar(win, &snake, head, &fruta, timer);
         }
 
         for(int i = snake.score; i > 0; i--){
           snake.body[i] = snake.body[i - 1];
-          if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y){game_over();}
+          if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y){game_over(win);}
         }
 
         snake.body[0] = snake.head;
@@ -142,14 +176,25 @@ int main(){
           fruta = gera_fruta(LINES - 1, COLS - 1);
         }
 
-        desenhar(&win, &snake, head, &fruta, timer);
+        desenhar(win, &snake, head, &fruta, timer);
 
         if(snake.head.x == COLS - 1 || snake.head.y == LINES - 1 || snake.head.x == 0 || snake.head.y == 0)
         {
-          game_over();
+          game_over(win);
         }
     }
-    
+}
+
+int main(){
+
+    WINDOW* win = initscr();
+    keypad(win, true);
+    nodelay(win, true);
+    curs_set(0);
+
+    menu(&win);
+    //game_start(&win);
+
     endwin();
     return 0;
 }
