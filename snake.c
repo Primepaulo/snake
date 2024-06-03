@@ -2,20 +2,29 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 
-void game_start(WINDOW** win);
+void game_over(WINDOW** win, int score);
+int game_start(WINDOW** win);
 
 int menu(WINDOW** win){
   refresh();
   const char* opcoes[] = {"Jogar","Pontuações","Sair"};
   int select = 0;
   int escolha;
+  int score;
+                       
   while(true){
     erase();
     box(*win, 0, 0);
+    mvprintw(2,(COLS - 41) / 2," ____    _   _      _      _  __  _____");
+    mvprintw(3,(COLS - 41) / 2,"/ ___|  | \\ | |    / \\    | |/ / | ____|");
+    mvprintw(4,(COLS - 41) / 2,"\\___ \\  |  \\| |   / _ \\   | ' /  |  _|  ");
+    mvprintw(5,(COLS - 41) / 2," ___) | | |\\  |  / ___ \\  | . \\  | |___ ");
+    mvprintw(6,(COLS - 41) / 2,"|____/  |_| \\_| /_/   \\_\\ |_|\\_\\ |_____|");
     for (int i = 0; i < 3; i++){
       if (i == select){wattron(*win, A_REVERSE);}
-      mvprintw((LINES  / 2) + i, (COLS - 9) / 2 , opcoes[i]);
+      mvprintw((LINES  / 2) + i, (COLS - 10) / 2 , opcoes[i]);
       wattroff(*win, A_REVERSE);
     }
     escolha = wgetch(*win);
@@ -33,11 +42,11 @@ int menu(WINDOW** win){
         break;
     }
     if (escolha == 10 || escolha == KEY_ENTER){
-      //mvprintw(5, 5, "%d", select);
       switch (select)
       {
         case 0:
-          game_start(win);
+          score = game_start(win);
+          game_over(win, score);
           break;
         case 1:
           break;
@@ -78,6 +87,7 @@ pos gera_fruta(int lines, int cols){
 void desenhar(WINDOW** win, snake* snake, char head, pos* fruta, int timer){
   erase();
   box(*win, 0, 0);
+  mvprintw(0,5, "Score: %d", snake->score - 5);
   for (int i = 0; i < snake->score; i++){
     mvaddch(snake->body[i].y, snake->body[i].x, '*');
   }
@@ -98,13 +108,19 @@ void dpausar(snake* snake, WINDOW** win){
     usleep(9999999);
 }
 
-void game_over(WINDOW** win){
+void game_over(WINDOW** win, int score){
   //solicitar nome pra salvar score no arquivo
   erase();
+  box(*win, 0, 0);
+  mvprintw((LINES / 2), (COLS / 2), "Game Over!");
+  char buf[80];
+  scanw("%s", buf);
+  mvprintw((LINES / 2), (COLS / 2) - 10, "%s", buf);
   refresh();
+  usleep(9999);
 }
 
-void game_start(WINDOW** win){
+int game_start(WINDOW** win){
     int timer = 110000;
     int size = 1;
     int flag = 0;
@@ -149,23 +165,13 @@ void game_start(WINDOW** win){
 
         for(int i = snake.score; i > 0; i--){
           snake.body[i] = snake.body[i - 1];
-          if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y){game_over(win);}
+          if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y){ free(snake.body); snake.body = NULL; return snake.score;}
         }
 
         snake.body[0] = snake.head;
 
         snake.head.x += snake.dir.x;
         snake.head.y += snake.dir.y;
-
-        for(int i = 1; i < snake.score; i++)
-        {
-          if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y)
-          { 
-            free(snake.body);
-            flag = 1;
-            goto end;
-          }
-        }
         
         if (snake.head.x == fruta.x && snake.head.y == fruta.y){
           snake.score++;
@@ -184,12 +190,10 @@ void game_start(WINDOW** win){
         if(snake.head.x == COLS - 1 || snake.head.y == LINES - 1 || snake.head.x == 0 || snake.head.y == 0)
         {
           free(snake.body);
-          flag = 1;
-          goto end;
+          snake.body = NULL;
+          return snake.score;
         }
       }
-      end:
-        game_over(win);
 }
 
 int main(){
