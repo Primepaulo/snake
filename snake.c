@@ -24,7 +24,7 @@ int menu(WINDOW** win){
     mvprintw(6,(COLS - 41) / 2,"|____/  |_| \\_| /_/   \\_\\ |_|\\_\\ |_____|");
     for (int i = 0; i < 3; i++){
       if (i == select){wattron(*win, A_REVERSE);}
-      mvprintw((LINES  / 2) + i, (COLS - 10) / 2 , opcoes[i]);
+      mvprintw((LINES  / 2) + i, (COLS - 10) / 2, "%s", opcoes[i]);
       wattroff(*win, A_REVERSE);
     }
     escolha = wgetch(*win);
@@ -71,6 +71,16 @@ typedef struct
   pos* body;
   int score;
 } snake;
+
+int saveScore(WINDOW** win, int score){
+  box(*win, 0, 0);
+  /* Score: {score} no meio.
+   * exibir o seu na posicao correta
+   * Listar scores antigos no arquivo
+   * Solicitar nome.
+   * salvar o arquivo
+   * */
+}
 
 pos gera_fruta(int lines, int cols){
   pos fruta;
@@ -161,6 +171,10 @@ int game_start(WINDOW** win){
             case KEY_HOME:
               dpausar(&snake, win);
               desenhar(win, &snake, head, &fruta, timer);
+            case 'q':
+              free(snake.body);
+              snake.body = NULL;
+              return snake.score;
         }
 
         for(int i = snake.score; i > 0; i--){
