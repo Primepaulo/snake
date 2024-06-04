@@ -72,6 +72,36 @@ typedef struct
   int score;
 } snake;
 
+void readFile(WINDOW** win, int score){
+  FILE* file = fopen("saves", "r");
+  char buf[50];
+  int flag == 1;
+  if (file != NULL){
+    int i = 0;
+    while(fgets(buf, sizeof(buf), file)){
+      if(score < (int)buf[0] && flag == 1){
+        mvprintw((LINES / 2) + i, (COLS / 2), "%d", score);
+        i++;
+        flag = 0;
+      }
+      mvprintw((LINES  / 2) + i, (COLS / 2), "%s", buf);
+      i++;
+      //Ver como jogos arcade centralizam score e nome
+    }
+    if (flag == 1){
+      mvprintw((LINES / 2) + i, (COLS / 2), "%d", score);
+      flag = 0;
+    }
+    fclose(file);
+  }
+}
+void writeFile(char* input){
+  FILE* file = fopen("saves", "wb+");
+  if (file != NULL){
+    fclose(file);
+  }
+}
+
 int saveScore(WINDOW** win, int score){
   box(*win, 0, 0);
   /* Score: {score} no meio.
