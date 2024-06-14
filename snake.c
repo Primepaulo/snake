@@ -6,6 +6,7 @@
 
 void game_over(WINDOW** win, int score);
 int game_start(WINDOW** win);
+void readFile(WINDOW** win);
 
 int menu(WINDOW** win){
   refresh();
@@ -49,6 +50,7 @@ int menu(WINDOW** win){
           game_over(win, score);
           break;
         case 1:
+          readFile(win);
           break;
         case 2:
           endwin();
@@ -67,33 +69,43 @@ typedef struct{
 typedef struct
 {
   pos head;
-  pos dir;
+  pos dir;    
   pos* body;
   int score;
 } snake;
-
-void readFile(WINDOW** win, int score){
+void readFile(WINDOW** win){
+  erase();
+  box(*win, 0, 0);
   FILE* file = fopen("saves", "r");
-  char buf[50];
-  int flag == 1;
+  char buf1[20]; char buf2[10]; char c;
+  int readFlag = 0;
+  int ascii;
   if (file != NULL){
     int i = 0;
-    while(fgets(buf, sizeof(buf), file)){
-      if(score < (int)buf[0] && flag == 1){
-        mvprintw((LINES / 2) + i, (COLS / 2), "%d", score);
-        i++;
-        flag = 0;
+    int iter = 0;
+    while((ascii = fgetc(file)) != EOF){
+      c = (char)ascii;
+      if(c == '\n'){
+          mvprintw((LINES / 2) + i, (COLS / 2), "%s", buf2);
+          mvprintw((LINES / 2) + i, (COLS / 3), "%d", atoi(buf1));
+          iter = 0;
+          memset(buf1, 0, sizeof buf1);
+          memset(buf2, 0, sizeof buf2);
+          i++;
       }
-      mvprintw((LINES  / 2) + i, (COLS / 2), "%s", buf);
-      i++;
-      //Ver como jogos arcade centralizam score e nome
+      else if (c == '-'){iter = 0; readFlag = 1; continue;}
+      else{
+        if (readFlag == 0){
+          buf1[iter] = c - '0';
+        }
+        else{
+          buf2[iter] = c;
+        }
+        iter++;
+      }
     }
-    if (flag == 1){
-      mvprintw((LINES / 2) + i, (COLS / 2), "%d", score);
-      flag = 0;
-    }
-    fclose(file);
   }
+  fclose(file);
 }
 void writeFile(char* input){
   FILE* file = fopen("saves", "wb+");
@@ -110,6 +122,7 @@ int saveScore(WINDOW** win, int score){
    * Solicitar nome.
    * salvar o arquivo
    * */
+  return 0;
 }
 
 pos gera_fruta(int lines, int cols){
