@@ -73,40 +73,51 @@ typedef struct
   pos* body;
   int score;
 } snake;
+
 void readFile(WINDOW** win){
   erase();
   box(*win, 0, 0);
   FILE* file = fopen("saves", "r");
-  char buf1[20]; char buf2[10]; char c;
+  char buf1[20]; char buf2[11]; char c;
   int readFlag = 0;
   int ascii;
   if (file != NULL){
     int i = 0;
     int iter = 0;
-    while((ascii = fgetc(file)) != EOF){
-      c = (char)ascii;
-      if(c == '\n'){
-          mvprintw((LINES / 2) + i, (COLS / 2), "%s", buf2);
-          mvprintw((LINES / 2) + i, (COLS / 3), "%d", atoi(buf1));
-          iter = 0;
-          memset(buf1, 0, sizeof buf1);
-          memset(buf2, 0, sizeof buf2);
-          i++;
-      }
-      else if (c == '-'){iter = 0; readFlag = 1; continue;}
-      else{
-        if (readFlag == 0){
-          buf1[iter] = c - '0';
+    while (true){
+      while((ascii = fgetc(file)) != EOF){
+        c = (char)ascii;
+        if(c == '\n'){
+            mvprintw(5 + i, (COLS / 2), "%s", buf1);
+            mvprintw(5 + i, (COLS / 2) - 3, "%d", atoi(buf2));
+            iter = 0;
+            memset(buf1, 0, sizeof buf1);
+            memset(buf2, 0, sizeof buf2);
+            i++;
+            wrefresh(*win);
         }
+        else if (c == '-'){iter = 0; readFlag = 1; continue;}
         else{
-          buf2[iter] = c;
+          if (readFlag == 0){
+            buf2[iter] = c - '0';
+          }
+          else{
+            buf1[iter] = c;
+          }
+          iter++;
         }
-        iter++;
+      }
+      mvprintw(5 + 2*i, (COLS/2) - 2, "Sair");
+      wattron(*win, A_REVERSE);
+      int key = wgetch(*win);
+      if (key == 10){
+        break;
       }
     }
   }
   fclose(file);
 }
+
 void writeFile(char* input){
   FILE* file = fopen("saves", "wb+");
   if (file != NULL){
@@ -115,16 +126,78 @@ void writeFile(char* input){
 }
 
 int saveScore(WINDOW** win, int score){
+  erase();
   box(*win, 0, 0);
+  FILE* file = fopen("saves", "r");
+  char buf1[20]; char buf2[10]; char c;
+  char buf3[11]; int w = 0; buf3[10] = '\n'; int pos;
+  int readFlag = 0;
+  int flag2 = 0;
+  int ascii;
+  if (file != NULL){
+    int i = 0;
+    int iter = 0;
+    while((ascii = fgetc(file)) != EOF){
+      c = (char)ascii;
+      if(c == '\n'){
+          if (score > atoi(buf2) || flag2 == 0){
+            mvprintw(5 + i, (COLS/2) - 3, "%d", score);
+            pos = i;
+            i++;
+            flag2 = 1;
+          }
+          mvprintw(5 + i, (COLS / 2), "%s", buf1);
+          mvprintw(5 + i, (COLS / 2) - 3, "%d", atoi(buf2));
+          iter = 0;
+          memset(buf1, 0, sizeof buf1);
+          memset(buf2, 0, sizeof buf2);
+          i++;
+          wrefresh(*win);
+      }
+      else if (c == '-'){iter = 0; readFlag = 1; continue;}
+      else{
+        if (readFlag == 0){
+          buf2[iter] = c - '0';
+        }
+        else{
+          buf1[iter] = c;
+        }
+        iter++;
+      }
+    }
+    while (true){
+      int key = wgetch(*win);
+      switch (key)
+      {
+        case 10:
+          fclose(file);
+          return 0;
+        case 127:
+        case KEY_BACKSPACE:
+          if (w != 0){
+            w--;
+            buf3[w] = ' ';
+          }
+          break;
+        default:
+          if (key != -1 && w < 10){
+            buf3[w] = key;
+            w++;
+          }
+          break;
+      }
+      mvprintw(5 + pos, (COLS / 2), "%s", buf3);
+    }
+  }
+  
+  return 0;
+}
   /* Score: {score} no meio.
    * exibir o seu na posicao correta
    * Listar scores antigos no arquivo
    * Solicitar nome.
    * salvar o arquivo
    * */
-  return 0;
-}
-
 pos gera_fruta(int lines, int cols){
   pos fruta;
   fruta.y = 0; fruta.x = 0;
@@ -166,11 +239,8 @@ void game_over(WINDOW** win, int score){
   erase();
   box(*win, 0, 0);
   mvprintw((LINES / 2), (COLS / 2), "Game Over!");
-  char buf[80];
-  scanw("%s", buf);
-  mvprintw((LINES / 2), (COLS / 2) - 10, "%s", buf);
-  refresh();
   usleep(9999);
+  saveScore(win, score - 5);
 }
 
 int game_start(WINDOW** win){
@@ -258,6 +328,7 @@ int main(){
     WINDOW* win = initscr();
     keypad(win, true);
     nodelay(win, true);
+    noecho();
     curs_set(0);
 
     menu(&win);
