@@ -47,6 +47,8 @@ int menu(WINDOW** win){
       {
         case 0:
           score = game_start(win);
+          erase();
+          refresh();
           game_over(win, score);
           break;
         case 1:
@@ -77,35 +79,37 @@ typedef struct
 void readFile(WINDOW** win){
   erase();
   box(*win, 0, 0);
-  FILE* file = fopen("saves", "r");
-  char buf1[20]; char buf2[11]; char c;
-  int readFlag = 0;
-  int ascii;
+  FILE* file = fopen("saves.txt", "r");
   if (file != NULL){
-    int i = 0;
-    int iter = 0;
+    int i = 0;  int ascii; char c; char names[10] = {' '}; char values[10] = {' '};
+    int flagDash = 0;
+    int iterNames = 0; int iterValues = 0;
     while (true){
       while((ascii = fgetc(file)) != EOF){
         c = (char)ascii;
-        if(c == '\n'){
-            mvprintw(5 + i, (COLS / 2), "%s", buf1);
-            mvprintw(5 + i, (COLS / 2) - 3, "%d", atoi(buf2));
-            iter = 0;
-            memset(buf1, 0, sizeof buf1);
-            memset(buf2, 0, sizeof buf2);
-            i++;
-            wrefresh(*win);
+        if (c == '-'){
+          flagDash = 1;
+          int fScore = atoi(values);
+          mvprintw(5 + i, (COLS/2) - 3, "%d", fScore);
+
         }
-        else if (c == '-'){iter = 0; readFlag = 1; continue;}
-        else{
-          if (readFlag == 0){
-            buf2[iter] = c - '0';
-          }
-          else{
-            buf1[iter] = c;
-          }
-          iter++;
+        else if (flagDash == 0){
+          values[iterValues] = c;
+          iterValues++; 
         }
+        else if (flagDash == 1 && c != '\n' && c != '\r'){
+          names[iterNames] = c;
+          iterNames++;
+        }
+        else if(c == '\n'){
+          mvprintw(5 + i, (COLS/2), "%s", names);
+          i++;
+          iterNames = 0; iterValues = 0;
+          flagDash = 0;
+          memset(names, '\0', sizeof names);
+          memset(values, '\0', sizeof values);
+          wrefresh(*win);
+        }  
       }
       mvprintw(5 + 2*i, (COLS/2) - 2, "Sair");
       wattron(*win, A_REVERSE);
@@ -128,48 +132,55 @@ void writeFile(char* input){
 int saveScore(WINDOW** win, int score){
   erase();
   box(*win, 0, 0);
-  FILE* file = fopen("saves", "r");
-  char buf1[20]; char buf2[10]; char c;
-  char buf3[11]; int w = 0; buf3[10] = '\n'; int pos;
-  int readFlag = 0;
-  int flag2 = 0;
+  FILE* file = fopen("saves.txt", "a+");
+  char c; char names[11]; char values[10];
+  char buf3[23] = {'\0'}; int w = 0; int pos;
   int ascii;
   if (file != NULL){
     int i = 0;
-    int iter = 0;
+    int flagDash = 0;  int flagScorePrinted = 0;
+    int iterNames = 0; int iterValues = 0;
     while((ascii = fgetc(file)) != EOF){
       c = (char)ascii;
-      if(c == '\n'){
-          if (score > atoi(buf2) || flag2 == 0){
-            mvprintw(5 + i, (COLS/2) - 3, "%d", score);
-            pos = i;
-            i++;
-            flag2 = 1;
-          }
-          mvprintw(5 + i, (COLS / 2), "%s", buf1);
-          mvprintw(5 + i, (COLS / 2) - 3, "%d", atoi(buf2));
-          iter = 0;
-          memset(buf1, 0, sizeof buf1);
-          memset(buf2, 0, sizeof buf2);
+      if (c == '-'){
+        flagDash = 1;
+        int fScore = atoi(values);
+        if (score > fScore && flagScorePrinted != 1){
+          mvprintw(5 + i, (COLS/2) - 3, "%d", score);
+          pos = i;
           i++;
-          wrefresh(*win);
-      }
-      else if (c == '-'){iter = 0; readFlag = 1; continue;}
-      else{
-        if (readFlag == 0){
-          buf2[iter] = c - '0';
+          flagScorePrinted = 1;
         }
-        else{
-          buf1[iter] = c;
-        }
-        iter++;
+        mvprintw(5 + i, (COLS/2) - 3, "%d", fScore);
+
       }
+      else if (flagDash == 0){
+        values[iterValues] = c;
+        iterValues++; 
+      }
+      else if (flagDash == 1 && c != '\n' && c != '\r'){
+        names[iterNames] = c;
+        iterNames++;
+      }
+      else if(c == '\n'){
+        mvprintw(5 + i, (COLS/2), "%s", names);
+        i++;
+        iterNames = 0; iterValues = 0;
+        flagDash = 0;
+        memset(names, '\0', sizeof names);
+        memset(values, '\0', sizeof values);
+      }  
+    }
+    if (flagScorePrinted == 0){
+      mvprintw(5 + i, (COLS/2) - 3, "%d", score);
+      pos = i;
     }
     while (true){
       int key = wgetch(*win);
       switch (key)
       {
         case 10:
+          fprintf(file, "%d-%s\n", score, buf3);
           fclose(file);
           return 0;
         case 127:
@@ -187,11 +198,13 @@ int saveScore(WINDOW** win, int score){
           break;
       }
       mvprintw(5 + pos, (COLS / 2), "%s", buf3);
+      refresh();
     }
   }
-  
+  fclose(file);
   return 0;
 }
+
   /* Score: {score} no meio.
    * exibir o seu na posicao correta
    * Listar scores antigos no arquivo
@@ -255,77 +268,78 @@ int game_start(WINDOW** win){
     pos fruta = gera_fruta(LINES - 1, COLS - 1);
     char head = '>';
     while (true){
-        int pressed = wgetch(*win);
-        switch (pressed){
-            case KEY_UP:
-                if (snake.dir.y == 1){continue;}
-                snake.dir.x = 0;
-                snake.dir.y = -1;
-                head = '^';
-                break;
-            case KEY_DOWN:
-                if (snake.dir.y == -1){continue;}
-                snake.dir.x = 0;
-                snake.dir.y = 1;
-                head = 'v';
-                break;
-            case KEY_RIGHT:
-                if (snake.dir.x == -1){continue;}
-                snake.dir.x = 1;
-                snake.dir.y = 0;
-                head = '>';
-                break;
-            case KEY_LEFT:
-                if (snake.dir.x == 1){continue;}
-                snake.dir.x = -1;
-                snake.dir.y = 0;
-                head = '<';
-                break;
-            case KEY_HOME:
-              dpausar(&snake, win);
-              desenhar(win, &snake, head, &fruta, timer);
-            case 'q':
-              free(snake.body);
-              snake.body = NULL;
-              return snake.score;
-        }
-
-        for(int i = snake.score; i > 0; i--){
-          snake.body[i] = snake.body[i - 1];
-          if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y){ free(snake.body); snake.body = NULL; return snake.score;}
-        }
-
-        snake.body[0] = snake.head;
-
-        snake.head.x += snake.dir.x;
-        snake.head.y += snake.dir.y;
-        
-        if (snake.head.x == fruta.x && snake.head.y == fruta.y){
-          snake.score++;
-          if (snake.score % 3 == 0){
-            timer = timer - 5;
-          }
-          if (snake.score == size * 300){
-            size++;
-            snake.body = (pos*)realloc(snake.body, size * 300 * sizeof(pos));
-          }
-          fruta = gera_fruta(LINES - 1, COLS - 1);
-        }
-
+    int pressed = wgetch(*win);
+    switch (pressed){
+      case KEY_UP:
+          if (snake.dir.y == 1){continue;}
+          snake.dir.x = 0;
+          snake.dir.y = -1;
+          head = '^';
+          break;
+      case KEY_DOWN:
+          if (snake.dir.y == -1){continue;}
+          snake.dir.x = 0;
+          snake.dir.y = 1;
+          head = 'v';
+          break;
+      case KEY_RIGHT:
+          if (snake.dir.x == -1){continue;}
+          snake.dir.x = 1;
+          snake.dir.y = 0;
+          head = '>';
+          break;
+      case KEY_LEFT:
+          if (snake.dir.x == 1){continue;}
+          snake.dir.x = -1;
+          snake.dir.y = 0;
+          head = '<';
+          break;
+      case KEY_HOME:
+        dpausar(&snake, win);
         desenhar(win, &snake, head, &fruta, timer);
+      case 'q':
+        free(snake.body);
+        snake.body = NULL;
+        return snake.score;
+    }
 
-        if(snake.head.x == COLS - 1 || snake.head.y == LINES - 1 || snake.head.x == 0 || snake.head.y == 0)
-        {
-          free(snake.body);
-          snake.body = NULL;
-          return snake.score;
-        }
+    for(int i = snake.score; i > 0; i--){
+      snake.body[i] = snake.body[i - 1];
+      if (snake.head.x == snake.body[i].x && snake.head.y == snake.body[i].y){ free(snake.body); snake.body = NULL; return snake.score;}
+    }
+
+    snake.body[0] = snake.head;
+
+    snake.head.x += snake.dir.x;
+    snake.head.y += snake.dir.y;
+    
+    if (snake.head.x == fruta.x && snake.head.y == fruta.y){
+      snake.score++;
+      if (snake.score % 3 == 0){
+        timer = timer - 5;
       }
+      if (snake.score == size * 300){
+        size++;
+        snake.body = (pos*)realloc(snake.body, size * 300 * sizeof(pos));
+      }
+      fruta = gera_fruta(LINES - 1, COLS - 1);
+    }
+
+    desenhar(win, &snake, head, &fruta, timer);
+
+    if(snake.head.x == COLS - 1 || snake.head.y == LINES - 1 || snake.head.x == 0 || snake.head.y == 0)
+    {
+      free(snake.body);
+      snake.body = NULL;
+      return snake.score;
+    }
+  }
 }
 
 int main(){
 
     WINDOW* win = initscr();
+    refresh();
     keypad(win, true);
     nodelay(win, true);
     noecho();
