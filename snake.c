@@ -80,6 +80,13 @@ void readFile(WINDOW** win){
   erase();
   box(*win, 0, 0);
   FILE* file = fopen("saves.txt", "r");
+  mvprintw(2, (COLS - 33) / 2, "   ___    ___    ___    ___   ___ ");
+  mvprintw(3, (COLS - 33) / 2, "  / __|  / __|  / _ \\  | _ \\ | __|");
+  mvprintw(4, (COLS - 33) / 2, "  \\__ \\ | (__  | (_) | |   / | _| ");
+  mvprintw(5, (COLS - 33) / 2, "  |___/  \\___|  \\___/  |_|_\\ |___|");
+  mvprintw(7, (COLS / 2) - 10, "Pontuação");
+  mvprintw(7, (COLS / 2) + 2, "Nome");
+
   if (file != NULL){
     int i = 0;  int ascii; char c; char names[10] = {' '}; char values[10] = {' '};
     int flagDash = 0;
@@ -90,7 +97,8 @@ void readFile(WINDOW** win){
         if (c == '-'){
           flagDash = 1;
           int fScore = atoi(values);
-          mvprintw(5 + i, (COLS/2) - 3, "%d", fScore);
+          if (i < 7){
+          mvprintw(9 + i, ((COLS) / 2) - 5, "%d", fScore);}
 
         }
         else if (flagDash == 0){
@@ -102,7 +110,9 @@ void readFile(WINDOW** win){
           iterNames++;
         }
         else if(c == '\n'){
-          mvprintw(5 + i, (COLS/2), "%s", names);
+          if (i < 7){
+            mvprintw(9 + i, ((COLS) / 2), "%s", names);
+          }
           i++;
           iterNames = 0; iterValues = 0;
           flagDash = 0;
@@ -111,7 +121,7 @@ void readFile(WINDOW** win){
           wrefresh(*win);
         }  
       }
-      mvprintw(5 + 2*i, (COLS/2) - 2, "Sair");
+      mvprintw(10 + i, (COLS - 5) / 2, "Sair");
       wattron(*win, A_REVERSE);
       int key = wgetch(*win);
       if (key == 10){
@@ -119,22 +129,48 @@ void readFile(WINDOW** win){
       }
     }
   }
+  erase();
+  refresh();
   fclose(file);
 }
 
-void writeFile(char* input){
-  FILE* file = fopen("saves", "wb+");
-  if (file != NULL){
-    fclose(file);
+void saveInFile(FILE* read, char* string, int replaceLine, int linhasTotais){
+  //Set file to start
+  fseek(read, 0, SEEK_SET);
+  //Open temp file
+  FILE* fileWrite = fopen("temp__saves.txt", "w");
+  char linha[24];
+
+  for (int i = 1; i < linhasTotais; ++i){
+    fgets(linha, 24, read);
+    if (i == replaceLine){
+      fputs(string, fileWrite);
+    }
+    else{
+      fputs(linha, fileWrite);
+    }
   }
+  if (replaceLine == -1){
+    fputs(string, fileWrite);
+  }
+  fclose(read);
+  fclose(fileWrite);
+  remove("saves.txt");
+  rename("temp__saves.txt", "saves.txt");
 }
 
 int saveScore(WINDOW** win, int score){
   erase();
   box(*win, 0, 0);
-  FILE* file = fopen("saves.txt", "a+");
-  char c; char names[11]; char values[10];
-  char buf3[23] = {'\0'}; int w = 0; int pos;
+  mvprintw(2, (COLS - 33) / 2, "   ___    ___    ___    ___   ___ ");
+  mvprintw(3, (COLS - 33) / 2, "  / __|  / __|  / _ \\  | _ \\ | __|");
+  mvprintw(4, (COLS - 33) / 2, "  \\__ \\ | (__  | (_) | |   / | _| ");
+  mvprintw(5, (COLS - 33) / 2, "  |___/  \\___|  \\___/  |_|_\\ |___|");
+  mvprintw(7, (COLS / 2) - 10, "Pontuação");
+  mvprintw(7, (COLS / 2) + 5, "Nome");
+  FILE* file = fopen("saves.txt", "r");
+  char c; char names[12] = {'\0'}; char values[11] = {'\0'};
+  char buf3[24] = {'\0'}; int w = 0; int pos; int line = 1; int replaceLine = -1;
   int ascii;
   if (file != NULL){
     int i = 0;
@@ -146,14 +182,18 @@ int saveScore(WINDOW** win, int score){
         flagDash = 1;
         int fScore = atoi(values);
         if (score > fScore && flagScorePrinted != 1){
-          mvprintw(5 + i, (COLS/2) - 3, "%d", score);
+          mvprintw(9 + i, ((COLS) / 2) - 5, "%d", score);
           pos = i;
           i++;
+          replaceLine = line;
           flagScorePrinted = 1;
         }
-        mvprintw(5 + i, (COLS/2) - 3, "%d", fScore);
-
+        if (i < 6)
+        {
+          mvprintw(9 + i, ((COLS) / 2) - 5, "%d", fScore);
+        }
       }
+      
       else if (flagDash == 0){
         values[iterValues] = c;
         iterValues++; 
@@ -163,16 +203,19 @@ int saveScore(WINDOW** win, int score){
         iterNames++;
       }
       else if(c == '\n'){
-        mvprintw(5 + i, (COLS/2), "%s", names);
-        i++;
+        if (i < 6){
+          mvprintw(9 + i, (COLS) / 2, "%s", names);
+          i++;
+        }
+        line++;
         iterNames = 0; iterValues = 0;
         flagDash = 0;
-        memset(names, '\0', sizeof names);
-        memset(values, '\0', sizeof values);
+        memset(names, '\0', sizeof (names));
+        memset(values, '\0', sizeof (values));
       }  
     }
     if (flagScorePrinted == 0){
-      mvprintw(5 + i, (COLS/2) - 3, "%d", score);
+      mvprintw(9 + i, ((COLS) / 2) - 5, "%d", score);
       pos = i;
     }
     while (true){
@@ -180,8 +223,14 @@ int saveScore(WINDOW** win, int score){
       switch (key)
       {
         case 10:
-          fprintf(file, "%d-%s\n", score, buf3);
-          fclose(file);
+          erase();
+          refresh();
+          
+          char* sbuf = (char*)malloc(24 * sizeof (char)); 
+          sprintf(sbuf, "%d-%s\n", score, buf3);
+          saveInFile(file, sbuf, replaceLine, line);
+          free(sbuf);
+
           return 0;
         case 127:
         case KEY_BACKSPACE:
@@ -194,23 +243,19 @@ int saveScore(WINDOW** win, int score){
           if (key != -1 && w < 10){
             buf3[w] = key;
             w++;
+            buf3[w] = '_'
           }
           break;
       }
-      mvprintw(5 + pos, (COLS / 2), "%s", buf3);
+      mvprintw(9 + pos, (COLS) / 2, "%s", buf3);
       refresh();
     }
   }
+  erase();
+  refresh();
   fclose(file);
   return 0;
 }
-
-  /* Score: {score} no meio.
-   * exibir o seu na posicao correta
-   * Listar scores antigos no arquivo
-   * Solicitar nome.
-   * salvar o arquivo
-   * */
 pos gera_fruta(int lines, int cols){
   pos fruta;
   fruta.y = 0; fruta.x = 0;
