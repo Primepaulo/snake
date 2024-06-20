@@ -381,6 +381,8 @@ int game_start(WINDOW** win){
 int main(){
 
     WINDOW* win = initscr();
+    FILE* file = fopen("saves.txt", "w");
+    fclose(file);
     refresh();
     keypad(win, true);
     nodelay(win, true);
