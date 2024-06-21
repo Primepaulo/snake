@@ -144,9 +144,7 @@ void saveInFile(FILE* read, char* string, int replaceLine, int linhasTotais){
     if (i == replaceLine){
       fputs(string, fileWrite);
     }
-    else{
-      fputs(linha, fileWrite);
-    }
+    fputs(linha, fileWrite);
   }
   if (replaceLine == -1){
     fputs(string, fileWrite);
